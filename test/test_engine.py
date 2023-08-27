@@ -1,5 +1,5 @@
 import torch
-from micrograd.engine import Value
+from nanograd.value import Value
 
 def test_sanity_check():
 
@@ -8,8 +8,8 @@ def test_sanity_check():
     q = z.relu() + z * x
     h = (z * z).relu()
     y = h + q + q * x
-    y.backward()
-    xmg, ymg = x, y
+    y.backpropagate()
+    x_nanograd, y_nanograd = x, y
 
     x = torch.Tensor([-4.0]).double()
     x.requires_grad = True
@@ -18,12 +18,12 @@ def test_sanity_check():
     h = (z * z).relu()
     y = h + q + q * x
     y.backward()
-    xpt, ypt = x, y
+    x_tensor, y_tensor = x, y
 
     # forward pass went well
-    assert ymg.data == ypt.data.item()
+    assert y_nanograd.of == y_tensor.data.item()
     # backward pass went well
-    assert xmg.grad == xpt.grad.item()
+    assert x_nanograd.gradient == x_tensor.grad.item()
 
 def test_more_ops():
 
@@ -39,8 +39,8 @@ def test_more_ops():
     f = e**2
     g = f / 2.0
     g += 10.0 / f
-    g.backward()
-    amg, bmg, gmg = a, b, g
+    g.backpropagate()
+    a_nanograd, b_nanograd, g_nanograd = a, b, g
 
     a = torch.Tensor([-4.0]).double()
     b = torch.Tensor([2.0]).double()
@@ -57,11 +57,17 @@ def test_more_ops():
     g = f / 2.0
     g = g + 10.0 / f
     g.backward()
-    apt, bpt, gpt = a, b, g
+    a_tensor, b_tensor, g_tensor = a, b, g
 
     tol = 1e-6
     # forward pass went well
-    assert abs(gmg.data - gpt.data.item()) < tol
+    assert abs(g_nanograd.of - g_tensor.data.item()) < tol
     # backward pass went well
-    assert abs(amg.grad - apt.grad.item()) < tol
-    assert abs(bmg.grad - bpt.grad.item()) < tol
+    assert abs(a_nanograd.gradient - a_tensor.grad.item()) < tol
+    assert abs(b_nanograd.gradient - b_tensor.grad.item()) < tol
+
+
+if __name__ == '__main__':
+    test_sanity_check()
+    test_more_ops()
+    print("Success! All tests passed! Nanograd is empirically proven to produce equal results to pytorch.Tensor calculations for the implemented test cases.")
